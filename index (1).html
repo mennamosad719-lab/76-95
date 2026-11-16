@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MedQuiz – Medical Study Dashboard</title>
+<style>
+:root{
+  --bg:#eef5f8;--card:#ffffff;--teal:#1d7593;--teal-d:#14566d;--teal-l:#e3f1f6;
+  --ink:#17323d;--mute:#5d7480;--line:#d7e4ea;
+  --ok:#1f9d63;--ok-bg:#e4f6ec;--bad:#d64545;--bad-bg:#fdeaea;--flag:#e99a1c;--flag-bg:#fff4df;
+  --shadow:0 2px 10px rgba(29,117,147,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;min-height:100vh}
+#app{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+h1,h2,h3{margin:0}
+button{font:inherit;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:20px}
+.btn{background:var(--teal);color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:600;transition:background .15s,transform .05s}
+.btn:hover{background:var(--teal-d)}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:#fff;color:var(--teal);border:1.5px solid var(--teal)}
+.btn.ghost:hover{background:var(--teal-l)}
+.btn.small{padding:7px 14px;font-size:.9rem}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.logo{font-weight:800;font-size:1.25rem;color:var(--teal);letter-spacing:.2px}
+.logo span{color:var(--ink)}
+
+/* countdown */
+.banner{background:linear-gradient(120deg,var(--teal),#2a93b5);color:#fff;border-radius:16px;padding:18px 22px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.banner .lbl{font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:.8px}
+.banner .big{font-size:1.7rem;font-weight:800;line-height:1.2}
+.banner .sub{opacity:.9;font-size:.92rem}
+.banner .btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.5)}
+.banner .btn:hover{background:rgba(255,255,255,.3)}
+.banner form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.banner input{border:0;border-radius:8px;padding:9px 10px;font:inherit;color:var(--ink)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+.stat .v{font-size:1.8rem;font-weight:800;color:var(--teal)}
+.stat .k{font-size:.82rem;color:var(--mute);text-transform:uppercase;letter-spacing:.6px}
+
+.search{width:100%;padding:13px 16px;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:#fff;margin-bottom:16px;outline:none}
+.search:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(29,117,147,.15)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.subject{cursor:pointer;transition:transform .12s,box-shadow .12s;border-top:4px solid var(--teal)}
+.subject:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(29,117,147,.16)}
+.subject h3{font-size:1.15rem;margin-bottom:4px}
+.subject .meta{color:var(--mute);font-size:.92rem}
+.subject .ico{font-size:1.6rem}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{background:var(--teal-l);color:var(--teal-d);border-radius:999px;padding:3px 10px;font-size:.8rem;font-weight:600}
+.empty{text-align:center;color:var(--mute);padding:30px}
+
+/* subject view */
+.back{background:none;border:0;color:var(--teal);font-weight:600;padding:0;margin-bottom:12px}
+.head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.head p{margin:2px 0 0;color:var(--mute)}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.exam{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:16px 18px;margin-bottom:10px}
+.exam h3{font-size:1.02rem}
+.exam .meta{color:var(--mute);font-size:.88rem}
+.exam .btns{display:flex;gap:8px}
+
+/* quiz */
+.qhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.qhead .t{font-weight:700}
+.timer{background:#fff;border:1.5px solid var(--teal);color:var(--teal);border-radius:999px;padding:6px 16px;font-weight:800;font-variant-numeric:tabular-nums}
+.timer.low{border-color:var(--bad);color:var(--bad);animation:pulse 1s infinite}
+@keyframes pulse{50%{background:var(--bad-bg)}}
+.bar{height:8px;background:#dbe8ee;border-radius:99px;overflow:hidden;margin-bottom:14px}
+.bar i{display:block;height:100%;background:var(--teal);transition:width .25s}
+.qnum{color:var(--mute);font-size:.88rem;margin-bottom:6px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.qtext{font-size:1.1rem;font-weight:600;margin-bottom:16px}
+.opt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:9px;color:var(--ink);transition:border-color .12s,background .12s}
+.opt:hover:not(:disabled){border-color:var(--teal);background:var(--teal-l)}
+.opt .L{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:var(--teal-l);color:var(--teal-d);display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.opt.ok{border-color:var(--ok);background:var(--ok-bg)}
+.opt.ok .L{background:var(--ok);color:#fff}
+.opt.bad{border-color:var(--bad);background:var(--bad-bg)}
+.opt.bad .L{background:var(--bad);color:#fff}
+.opt:disabled{cursor:default;color:var(--ink)}
+.fb{margin-top:10px;padding:12px 14px;border-radius:12px;font-size:.95rem}
+.fb.ok{background:var(--ok-bg);color:#14613c}
+.fb.bad{background:var(--bad-bg);color:#8d2323}
+.expl{margin-top:10px;background:#f4f9fb;border-left:4px solid var(--teal);padding:12px 14px;border-radius:8px;font-size:.93rem}
+.nav{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;margin-top:18px}
+.flagbtn{background:#fff;color:#9a6200;border:1.5px solid var(--flag)}
+.flagbtn:hover{background:var(--flag-bg)}
+.flagbtn.on{background:var(--flag);color:#fff}
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:8px;margin-top:6px}
+.qgrid button{position:relative;height:42px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-weight:700;color:var(--ink)}
+.qgrid button:hover{border-color:var(--teal)}
+.qgrid .ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.qgrid .bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.qgrid .cur{outline:3px solid var(--teal);outline-offset:1px}
+.qgrid .flag::after{content:"";position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--flag);border:2px solid #fff}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--mute);margin-top:12px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1.5px solid var(--line);background:#fff}
+.legend i.ok{background:var(--ok);border-color:var(--ok)}
+.legend i.bad{background:var(--bad);border-color:var(--bad)}
+.legend i.flag{background:var(--flag);border-color:var(--flag);border-radius:50%}
+
+/* results */
+.result{text-align:center}
+.ring{--p:0;width:170px;height:170px;border-radius:50%;margin:10px auto 14px;display:grid;place-items:center;background:conic-gradient(var(--teal) calc(var(--p)*1%),#dbe8ee 0)}
+.ring div{width:132px;height:132px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:2rem;font-weight:800;color:var(--teal)}
+.ring.low{background:conic-gradient(var(--bad) calc(var(--p)*1%),#dbe8ee 0)}
+.ring.low div{color:var(--bad)}
+.rstats{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:12px 0 18px}
+.rstats span{background:var(--teal-l);border-radius:999px;padding:6px 14px;font-weight:600;font-size:.9rem}
+.seg{display:inline-flex;border:1.5px solid var(--teal);border-radius:10px;overflow:hidden;margin:6px 0 14px}
+.seg button{background:#fff;border:0;padding:8px 18px;font-weight:600;color:var(--teal)}
+.seg button.on{background:var(--teal);color:#fff}
+.rev{margin-bottom:12px;text-align:left}
+.tag{display:inline-block;border-radius:999px;font-size:.75rem;font-weight:700;padding:2px 9px;margin-left:6px}
+.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.tag.ok{background:var(--ok-bg);color:var(--ok)}
+.tag.skip{background:#eceff1;color:#607d8b}
+.note{color:var(--mute);font-size:.85rem;text-align:center;margin-top:24px}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}.banner .big{font-size:1.4rem}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+"use strict";
+/* ============================ DATA ============================ */
+function q(n, text, opts, ans, expl){
+  return {n:n, q:text, o:opts, a:"abcde".indexOf(ans), e:expl||""};
+}
+
+/* ---------- Part 1 : MCQs ---------- */
+var P1 = [
+q("116","Syncope: which is true?",["Followed by facial flushing suggests a tachyarrhythmia","Without warning suggests a vasovagal episode","On exercise is a typical feature of mitral regurgitation","Can sometimes be treated by β-blockers"],"d"),
+q("117","Atrial fibrillation (AF): which is false?",["Present in 10% of the elderly population over the age of 75 years","Usually readily converted to permanent sinus rhythm using DC cardioversion","Associated with an annual stroke risk of 5% if structural heart disease is present","A common presenting feature of the sick sinus syndrome"],"b"),
+q("118","Atrial tachycardia is typically associated with:",["AV conduction","An atrial rate of 300/min","Presence of P waves identical to those found during sinus rhythm","Digoxin toxicity and intracellular potassium depletion","Bizarre broad QRS complexes on ECG"],"d"),
+q("119","Typical features of the Wolff-Parkinson-White (WPW) syndrome include all the following except:",["Tachyarrhythmias resulting from re-entry phenomenon","Ventricular pre-excitation via an accessory AV pathway","Atrial fibrillation with a ventricular response of > 160/min","Useful therapeutic response to verapamil or digoxin"],"d"),
+q("120","In ventricular tachycardia (VT) which is true?",["Underlying cardiac disease is usually present","A shortened QT interval on ECG predisposes to recurrent episodes","Carotid sinus massage usually slows the cardiac rate transiently","Complicated by acute cardiac failure, cardioversion should be avoided"],"a"),
+q("121","The following statement about atrioventricular block is true:",["The PR interval is fixed in Mobitz type I second-degree block","Decreasing PR intervals suggest Wenckebach's phenomenon","Irregular cannon waves in the jugular venous pressure suggest complete heart block","The QRS complex in complete heart block is always broad and bizarre"],"c"),
+q("123","Amiodarone therapy: which is false?",["Prolongs the plateau phase of the action potential","Potentiates the effect of warfarin","May cause corneal deposits","Has a significant negative inotropic action"],"d"),
+q("124","The following antihypertensive drugs are appropriate choices in the conditions named except:",["Hydrochlorothiazide → benign prostatic hypertrophy","Losartan → advanced renal failure","Ramipril → diabetes mellitus","Metoprolol → congestive heart failure"],"a"),
+q("125","Regarding renovascular hypertension: which is false?",["It is commoner in blacks","A low serum potassium is seen","The presence of asymmetry in renal sizes is suggestive of the diagnosis","Renal arteriography is the gold standard in diagnosis"],"a"),
+q("126","In the investigation of suspected angina pectoris which is true?",["The resting ECG may be normal","Exercise-induced elevation in blood pressure indicates significant ischaemia","A normal ECG during exercise excludes angina pectoris","Coronary angiography is only indicated if an exercise tolerance test (ETT) is abnormal","Physical examination is of no clinical value"],"a"),
+q("127","In the treatment of patients with angina pectoris which is true?",["Aspirin reduces the frequency of anginal attacks","Glyceryl trinitrate is equally effective when swallowed as when taken sublingually","Calcium antagonists may cause peripheral oedema","Tissue levels of nitrates must be consistently high for maximum therapeutic effect","β-blockers are more effective than other anti-anginal agents"],"c"),
+q("128","The clinical features of acute myocardial infarction include all the following except:",["Nausea and vomiting","Breathlessness and angor animi","Hypotension and peripheral cyanosis","Sinus tachycardia or sinus bradycardia","Melena"],"e"),
+q("129","In the treatment of acute myocardial infarction which is false?",["Aspirin given within 6 hours of onset reduces the mortality","Streptokinase therapy reduces infarct size and mortality by > 25%","Diamorphine is better given intravenously than by any other route","Immediate calcium channel blocker therapy reduces the early mortality rate"],"d"),
+q("130","Hypertension increases the risk of developing the following except:",["Renal failure","Asthma","Congestive cardiac failure","Stroke","Angina"],"b"),
+q("131","The following statements about the prognosis of acute myocardial infarction are true except:",["50% of all deaths occur within the first 24 hours","Stress and social isolation adversely affect the prognosis","The 5-year survival is 75% for those who leave hospital","Late mortality has no relation to the extent of myocardial damage","In hospital mortality for those aged over 75 years is over 25%"],"d"),
+q("132","Characteristic features of aortic dissection include all the following except:",["Haemopericardium","Acute paraparesis","Interscapular back pain","Early diastolic murmur","Gastroparesis"],"e"),
+q("134","Aspirin: which is false?",["Reduces mortality after a myocardial infarction","Must be discontinued if the patient complains of dyspepsia","Is effective in primary prevention of myocardial infarction","Prevents stroke","Does not give additive benefit when combined with warfarin after pulmonary embolism"],"b"),
+q("137","Regarding anticoagulation: which is true?",["Warfarin is indicated in patients with mitral stenosis and atrial fibrillation","Low molecular weight heparin is less effective than unfractionated heparin in unstable angina","Patients with recurrent transient ischaemic attacks should be treated with warfarin","In patients on long term warfarin it is sufficient to check the INR every 3 months"],"a"),
+q("140","Dilated (congestive) cardiomyopathy which is false?",["Usually idiopathic","Associated with pathognomonic ECG changes","A recognised complication of HIV infection","Associated with chronic alcohol misuse","Caused by Coxsackie A infection"],"b"),
+q("141","Angiotensin converting enzyme inhibitors are indicated in all the following except:",["In a 40 year old patient with idiopathic dilated cardiomyopathy","In a patient after a myocardial infarction","In a patient with aortic stenosis","A hypertensive patient with proteinuria"],"c"),
+q("142","The side effects of angiotensin converting enzyme inhibitors include the following except:",["Cough","Headache","Hyperkalaemia","Worsening of renal function in patients with chronic renal failure","Hypotension with the first dose"],"b"),
+q("143","In pericardial tamponade which is true?",["High amplitude QRS complexes are a typical ECG feature","Echocardiography is the definitive investigation","An effusion > 250 ml must be present before detrimental haemodynamic effects ensue","A normal chest radiograph excludes the diagnosis"],"b"),
+q("144","All these are acute attack of dyspnea associated with chest pain except:",["Spontaneous pneumothorax","Myocardial infarction","Bronchial asthma","Massive pulmonary embolism"],"c"),
+q("152","In a young boy with hypertension, examination of cardiovascular system reveals radio-femoral delay. The most likely cause of hypertension in this patient is:",["Coarctation of aorta","Diabetic nephropathy","Conn's syndrome","Dissection of aorta","Renal artery stenosis"],"a"),
+q("153","In a patient with history of shortness of breath, which of the following sign indicates left heart failure:",["Ascites","Basal crepitations","Dependant edema","Engorged neck veins","Fourth heart sound"],"b"),
+q("154","A fifty year old man is admitted in emergency ward with acute myocardial infarction. Which of the following drug is used as acute reperfusion therapy:",["Aspirin","Clopidogrel","Heparin","Streptokinase","Warfarin"],"d"),
+q("155","Which of the following is a cause of central cyanosis:",["Exposure to cold","Heart failure","Shock","Right to left cardiac shunts","Raynaud's phenomenon"],"d"),
+q("156","Which drugs or drug combinations should be avoided in the therapy of pheochromocytoma?",["Dibenzyline","Beta-blockade followed by alpha blockade","Alpha-blockade followed by beta blockade","Prazosin","Clonidine"],"b"),
+q("157","Which of the following studies will yield pathological values in neurofibromatosis with hypertension?",["The determination of the concentration of metanephrine in a 24-hour urine sample","The plasma renin activity","The serum cortisol level","The determination of the concentration of aldosterone in a 24-hour urine sample","The fractional potassium excretion"],"a"),
+q("158","In heart failure: which is false?",["Carvedilol is contraindicated as it has negative inotropic effects","The compensatory pathophysiological mechanisms have harmful effects in the long term","Salt restriction is used as a form of therapy","Captopril improves survival"],"a"),
+q("159","A patient with an acute inferior myocardial infarction develops complete heart block: which is true?",["Urgent temporary cardiac pacing is immediately indicated","It is unlikely to recover spontaneously","It is a sign of extensive infarction","Isoprenaline infusion is indicated","Atropine may revert his rhythm to normal"],"e"),
+q("160","The following changes can occur in hyperkalaemia except:",["Shortening of the PR interval","Tall peaked T waves","Widening of the QRS complex","Asystole","Bradycardia"],"a"),
+q("162","The following are recognized causes of dilated cardiomyopathy except:",["Haemochromatosis","Friedrich's ataxia","Cyclophosphamide therapy","Wilson's disease","Systemic sclerosis"],"d"),
+q("163","Patients with dilated cardiomyopathy may present with all the following except:",["Stroke","Haemoptysis","Sudden cardiac death","Syncope","Supraventricular arrhythmia"],"b"),
+q("164","In a pericardial effusion: which is false?",["On chest radiograph the heart is globular","The lung fields are oligemic","Echocardiography is useful in diagnosis","Bradycardia is a feature","A low pulse volume is an indication for urgent aspiration"],"d"),
+q("165","Regarding constrictive pericarditis: which is false?",["Tuberculosis is the most important cause in the developing world","Pericardial calcification may be seen on a lateral chest radiograph","Hypothyroidism is a known cause","It is a cause of atrial fibrillation","The treatment is pericardiotomy"],"c"),
+q("166","The following are causes of specific heart muscle disease except:",["Amyloidosis","Sarcoidosis","Emphysema","Haemosiderosis","Pregnancy"],"c")
+];
+
+/* ---------- Part 11 A : Case scenarios ---------- */
+var P11A = [
+q("1","A 27-year-old lady presented 3 weeks after a normal vaginal delivery with increasing shortness of breath and orthopnea. She had uneventful pregnancy and her past medical history was unremarkable. On her presentation to emergency department: respiratory rate 30/min, pulse 95/min, blood pressure 100/60 mmHg. A third heart sound (gallop) and bilateral basal crackles were found on auscultation. ECG showed sinus rhythm with few ventricular premature beats. An echocardiogram showed dilated hypokinetic left ventricle with ejection fraction of 30%. Which of the following is TRUE?",["Family history of cardiomyopathy is significant.","Pulmonary embolism is the likely diagnosis.","Use of anticoagulation has to be avoided.","Chest X-ray is expected to show oligemic lungs.","Use of ACE inhibitors does not improve survival."],"a"),
+q("2","A 50-year-old woman is referred to hospital by her general practitioner because of painful, swollen left calf. Which of the following statements is incorrect?",["Lower limb venous duplex scan is a sensitive test for exclusion of above-knee deep vein thrombosis","Raised D-dimer is usually considered diagnostic of deep vein thrombosis in this context","Cellulitis is a possible diagnosis","Recent surgery increases the likelihood that deep vein thrombosis is the cause","Ruptured Baker's cyst is a possible explanation"],"b"),
+q("3","A 27-year-old woman presents to hospital complaining of palpitations and light-headedness. Examination reveals a regular pulse of 180 beats/min with a blood pressure of 100/60. ECG reveals a narrow complex tachycardia. Which of the following diagnoses is most likely?",["Atrial fibrillation","Atrial flutter","Supraventricular tachycardia","Sinus tachycardia","Ventricular tachycardia"],"c"),
+q("4","A 50-year-old woman presents to hospital with 2 week history of mild chest discomfort, palpitations and shortness of breath on exertion; ECG reveals an irregularly irregular tachycardia with a heart rate of 130 beats/min. Blood pressure is 160/70; heart sounds are normal and chest is clear. Which of the following statements is incorrect?",["Atrial fibrillation is the most likely diagnosis","Digoxin is an appropriate treatment to provide rate control","Alcohol is a possible underlying cause","Urgent DC cardioversion is the treatment of choice","Amiodarone may result in chemical cardioversion"],"d"),
+q("5","A 75-year-old man is brought to hospital in the early hours of the morning having been woken by acute shortness of breath. He has a past history of mild chronic obstructive pulmonary disease and has had a previous myocardial infarct, although he was well in the days prior to this admission. On arrival he appears sweaty and pale with a regular pulse of 100 beats/min and blood pressure 140/70. Respiratory examination reveals bilateral coarse crepitations to both midzones. What is the most likely diagnosis?",["Pulmonary embolism","Pulmonary fibrosis","Exacerbation of COPD","Acute left ventricular failure","Bilateral pneumonia"],"d"),
+q("6","A 31-year-old woman is brought to Emergency having collapsed unconscious at work. She tells you she was standing listening to a presentation when she began to feel nauseated, faint and lost her vision before losing consciousness. She has lost consciousness only once before, when having blood taken. What is the most likely diagnosis?",["Ventricular tachycardia","Hypoglycaemia","Epilepsy","Neurocardiogenic syncope","Complete heart block"],"d"),
+q("7","A 67-year-old man is referred to Emergency by his GP after a 12-lead ECG performed at the surgery shows atrial fibrillation. The resting ventricular rate is 130 bpm. He reports no symptoms and said he had just gone for a blood pressure check. What is the most appropriate treatment?",["Immediate external DC cardioversion","Oral beta blockers","Intravenous amiodarone","Oral amiodarone","Oral flecainide"],"b"),
+q("8","A 78-year-old male presents to Emergency with palpitations, breathlessness and near syncope. His heart rate is 160 bpm and regular. A 12-lead ECG shows a regular broad-complex tachycardia (QRS duration 140 ms). Which one of the following is most likely to point to a diagnosis of ventricular tachycardia?",["A history of prior myocardial infarction","A systolic blood pressure of < 90 mm Hg","A heart rate greater than 200 bpm","A history of blackouts","Chest pain during tachycardia"],"a"),
+q("9","A 65-year-old male is admitted to the CCU after undergoing primary angioplasty for an acute anterior myocardial infarction. His blood pressure is recorded as 80/50 mmHg. Which one of the following signs is not compatible with a diagnosis of cardiogenic shock?",["A urine output of 10 mL/h","Cold, clammy peripheries","Inspiratory crackles at both lung bases","Sinus bradycardia of 50 bpm","An elevated JVP"],"d"),
+q("10","An 80-year-old woman reports a 2-week history of extreme fatigue, breathlessness and mild dizzy spells. Her resting pulse is regular and 40 bpm. Which one of the following is inconsistent with a diagnosis of complete heart block?",["Cannon waves in her JVP waveform","An increase in her heart rate to 60 bpm when walking up stairs","A blood pressure of 180/100 mmHg","No history of syncope","An ECG showing dissociation between P waves and QRS complexes"],"b"),
+q("11","A 58-year-old man presents to the outpatient clinic with a history of breathlessness. He is known to have COPD but his GP has noted a pansystolic murmur audible at the apex consistent with a diagnosis of mitral regurgitation. Which one of the following clinical features suggest that his MR is severe and therefore likely to contribute significantly to his breathlessness?",["An opening snap","A mid-systolic click with a late systolic murmur","The presence of Kerley B lines and upper lobe blood diversion on the CXR","A resting O2 saturation of 94%","An Austin Flint murmur"],"c"),
+q("12","A 46-year-old man presents with sudden onset of shortness of breath and haemoptysis. Which of the following is the most likely diagnosis?",["A pulmonary embolus","Lung cancer","A myocardial infarct","A pneumothorax","An intrapulmonary haemorrhage"],"a"),
+q("13","A 49-year-old male smoker complains of severe subesternal squeezing chest pain of 30 minutes duration. The paramedics have given sublingual nitroglycerin and oxygen by nasal cannula. His blood pressure is 110/70 mmHg and heart rate 90 bpm on arrival to the emergency room. The ECG is normal. Which of the following is the best next step?",["Echocardiography","Thallium stress test","Aspirin","Coronary angiography","Coronary artery bypass"],"c"),
+q("14","A 55-year-old man is noted to have moderately severe congestive heart failure with impaired systolic function. Which of the following drugs would most likely lower his risk of mortality?",["Angiotensin-converting enzyme inhibitors","Loop diuretics","Digoxin","Aspirin"],"a"),
+q("15","A 35-year-old woman is noted to have significant aortic stenosis. Which of following finding would be most important regarding this patient mortality risk?",["Systolic murmur","Angina","Syncope","Congestive heart failure"],"d"),
+q("16","A 28-year-old woman has been told she has rheumatic heart disease, specifically mitral stenosis. Which of following murmurs is most likely present?",["Diastolic rumble at apex of the heart","Early diastolic decrescendo at right upper sternal border","Holosystolic murmur at apex","Late peaking systolic murmur at right upper sternal border"],"a"),
+q("17","A 59-year-old woman has been placed on warfarin (Coumadin) after being found to have had chronic atrial fibrillation. She is noted to have an INR of 5.8, is asymptomatic, and has no overt bleeding. Which of the following is the best management for this patient?",["Transfuse with erythrocytes","Give vitamin K","Give fresh-frozen plasma","Hold warfarin"],"d"),
+q("18","An 83-year-old woman comes to your office complaining of a headache and mind confusion. Her only medical history is remarkable only for hypertension, which is well controlled with hydrochlorothiazide. Her examination and laboratory tests show no sign of infection, but her serum sodium level is 119 mEq/L, and plasma osmolality is 245 mOsm/kg. She appears to be clinically hypovolemic. What is the best initial therapy?",["Fluid restriction","Infusion of 0.9% saline","Infusion of 3% saline","Infusion of 3% saline with furosemide"],"b"),
+q("19","A 49-year-old smoker with hypertension, diabetes, and hypercholesterolemia comes to the office complaining of pain in his calves when he walks 2-3 blocks. What therapy might offer him the greatest benefit in symptom reduction and in overall mortality?",["Aspirin","Limb revacularization procedure","Cilostazol","Smoking cessation","Pravastatin"],"d"),
+q("20","A fifty year old man presents in emergency ward with central chest pain. On examination his blood pressure is 90/60 mmHg and pulse is 106 per minute. He is pale and sweating profusely. The most likely diagnosis is:",["Esophagitis","Myocardial infarction","Pericarditis","Pleural effusion","Pneumothorax"],"b"),
+q("22","A fifteen year old boy presents with history of fever and arthritis. There is past history of similar symptoms one year back. A diagnosis rheumatic fever is made. The treatment of choice for this patient's symptom is:",["Aspirin","Diclofenac","Ibuprofen","Paracetamol","Morphine"],"a"),
+q("23","A 35-year-old woman is noted to have a positive Kussmaul sign. Which of the following conditions does she most likely have?",["Constrictive pericarditis","Cardiac tamponade","Dilated cardiomyopathy","Diabetic ketoacidosis"],"a"),
+q("24","A 55-year-old accountant complains of facial and tongue swelling. He recently started using a new bath soap. His medical problems include osteoarthritis and hypertension for which he takes acetaminophen and lisinopril, respectively. Which of the following is the most likely etiology?",["Lisinopril","Soap hypersensitivity","Hypothyroidism","Acetaminophen","Food related allergy"],"a"),
+q("25","A 57-year-old man is noted to have a blood pressure 68/50 mmHg, heart rate 140 bpm, elevated jugular venous pressure, inspiratory crackles on examination, and cold clammy extremities. Which of the following is the most likely etiology?",["Septic shock","Adrenal crisis","Cardiogenic shock","Hypovolemic shock"],"c"),
+q("26","A 60-year-old male patient has suffered for years from chronic bronchitis and emphysema. Respiratory function tests indicate severe obstruction. The patient was admitted due to severe respiratory insufficiency. The ECG showed a 160/min tachycardia (AV-nodal). The patient has never taken digitalis. The respiratory insufficiency was treated with oxygen, aminophylline, antibiotics and steroids. Which of the following should be used for treatment of the arrhythmia?",["No other therapy is required","Digitalis","Beta-blockers (for example pindolol)","Beta-stimulators (for example albuterol)","Quinidine"],"b"),
+q("27","A 62-year-old man with coronary artery disease (CAD) presents with presyncope. His physical examination is normal except for bradycardia (pulse 56 beats/min) and an irregular pulse. The electrocardiogram (ECG) shows Wenckebach's type atrioventricular (AV) block. Which of the following are you most likely to see on the ECG?",["Progressive PR shortening","Progressive lengthening of the PR interval","Tachycardia","Dropped beat after PR lengthening","Fixed 2:1 block"],"d")
+];
+
+/* ---------- Part 11 B : Case scenarios with explanations ---------- */
+var P11B = [
+q("1","A 42-year-old man develops shortness of breath (SOB) and chest pain 7 days after an open cholecystectomy. His blood pressure is 145/86 mm Hg, pulse is 120/min, respirations 24/min, and oxygen saturation of 97%. Pulmonary embolism is clinically suspected. Which of the following is the most common ECG finding of pulmonary embolism?",["A deep S wave in lead I","Depressed ST segments in leads I and II","Prominent Q wave in lead I, and inversion of T wave in lead III","Sinus tachycardia","Clockwise rotation in the precordial leads"],"d",
+ "Sinus tachycardia is the most common ECG finding in pulmonary embolism. The specific ECG signs of pulmonary embolism such as the S1, Q3, T3 are rarely seen except in cases of massive pulmonary embolism. In submassive pulmonary emboli, the ECG may show nonspecific ST changes and sinus tachycardia. On occasion, pulmonary embolism can precipitate atrial flutter or fibrillation. One of the most useful roles of the ECG is to rule out MI when a massive embolism is present."),
+q("3","A 42-year-old man with known valvular heart disease develops a fever for 1 week. He appears unwell; findings include a pansystolic murmur at the apex that radiates to the axilla and a soft S1 sound. He has petechiae on his conjunctival sac, linear hemorrhages under a few fingernails, and painful, tender, and erythematous nodules on some of the distal fingertips. Which of the following is the most responsible mechanism for these physical findings?",["Direct bacterial invasion","Immune response","Vascular phenomena","Valvular damage","Preexisting cardiac dysfunction"],"c",
+ "Common findings in infective endocarditis include petechiae, Roth's spots, Osler's nodes, Janeway lesions, splinter hemorrhages, stroke, and infarction of viscera, or extremities. Many of the complications are thought to be embolic but may include vasculitis. Autopsy studies reveal that many systemic emboli go unrecognized. Brain, lung, coronary arteries, spleen, extremities, gut, and eyes are common locations for emboli."),
+q("4","A 67-year-old man presents with an anterior myocardial infarction (MI) and receives thrombolytic therapy. Three days later, he develops chest pain that is exacerbated by lying down, and his physical findings are normal except for a friction rub. His ECG shows evolving changes from the anterior infarction but new PR-segment depression and 1-mm ST-segment elevation in all the limb leads. Which of the following is the most likely diagnosis?",["Reinfarction","Pulmonary embolus","Viral infection","Post-MI pericarditis","Dissecting aneurysm"],"d",
+ "Pericarditis secondary to transmural infarction is very common and most cases appear within 4 days. The most common manifestation of pericarditis is a friction rub along the left sternal border. It is evanescent, lasting only a few days. The pain is usually perceived by the patient to be different than that of the infarct. It is worsened by inspiration, swallowing, coughing, or lying down. It frequently is associated with a low-grade fever."),
+q("5","Auscultation of the heart of a 17-year-old boy reveals an increased intensity of the pulmonary component of the second heart sound. He complains of dyspnea on exertion but no other cardiac or pulmonary symptoms. Which of the following explanations is the most likely cause of his dyspnea?",["Pulmonary stenosis","Aortic stenosis","MI","Pulmonary hypertension","Systemic hypertension"],"d",
+ "Pulmonary hypertension is associated with an increased intensity of the second heart sound, which coincides with the end of the T wave on ECG. It is the pulmonic component of the second heart sound that is increased. Pulmonary stenosis can cause dyspnea on exertion but auscultation will reveal a systolic murmur and decreased second heart sound (pulmonic component). As well, there may be prominent a waves in the jugular venous pulse, a right ventricular heave, an ejection click, and a right ventricular fourth heart sound. When signs and symptoms are apparent, the pulmonary hypertension is usually moderate to severe."),
+q("6","A patient with new-onset syncope has a blood pressure of 110/95 mm Hg and a harsh systolic ejection murmur at the base, radiating to both carotids. Auscultation of the second heart sound at the base might reveal which of the following findings?",["It is accentuated","It is diminished","It is normal in character","It is widely split due to delayed ventricular ejection","It shows fixed splitting"],"b",
+ "In aortic stenosis, the first sound is usually normal; the second sound is characteristically diminished because of the increased ventricular pressure and the stenotic valve is less mobile. There can be a single S2 either because A2 and P2 are superimposed or A2 is absent or very soft. Severe aortic stenosis may be accompanied by paradoxical splitting of S2."),
+q("7","A 28-year-old man develops viridans group streptococci septicemia. Which of the following cardiac lesions has the highest risk of developing endocarditis?",["Ventricular septal defect","Atrial septal defect, secundum type","Mitral valve prolapse with regurgitation","Pure mitral stenosis","Asymmetric septal hypertrophy"],"a",
+ "A ventricular septal defect is considered a relatively high-risk lesion for infective endocarditis. Mitral valve prolapse with regurgitation, asymmetric septal hypertrophy, and pure mitral stenosis are considered an intermediate risk. Atrial septal defects of the secundum type are considered low risk."),
+q("8","A 58-year-old man is undergoing cardiac catheterization for evaluation of chest pain symptoms. He is worried about the risks, and as part of obtaining informed consent, you advise him about the risks and benefits of the procedure. Which of the following aspects of angiography is true?",["It is contraindicated in the presence of cyanosis","It is considered noninvasive","It is generally performed with cardiopulmonary bypass","It may cause renal failure","It requires carotid artery puncture"],"d",
+ "Contrast media used in cardiac catheterization may result in renal impairment. The group at highest risk includes diabetics with renal disease and those with preexisting renal failure. Good hydration is essential. Other manifestations of contrast media include nausea and vomiting (common), and anaphylactoid reactions characterized by low-grade fever, hives, itching, angioedema, bronchospasm, and even shock. Side effects are reduced with the use of new low osmolality contrast media."),
+q("9","A 58-year-old man with hypertension is brought to the emergency room after sudden onset chest pain that radiates to his back and arms. He is in moderate distress with a blood pressure of 160/90 mm Hg in the left arm and 120/70 mm Hg in the right arm. Cardiac examination reveals a soft second heart sound and a murmur of aortic insufficiency. His ECG shows sinus tachycardia but no acute ischemic changes, and the chest x-ray (CXR) is shown in the original document (Fig. 1–4). Which of the following is the most appropriate next step in confirming the diagnosis?",["Coronary Angiography","Transthoracic Echocardiography","Computerized Tomography (CT) Chest","Exercise Stress Test","Cardiac troponin level"],"c",
+ "Aortic dissection is a medical emergency requiring prompt attention. Other cardiac and pulmonary causes of chest pain can be quickly ruled out with ECG and CXR. CT scan of the chest is sensitive (93–100%) in ruling out dissection. Transesophageal echocardiography is equally as sensitive but not a transthoracic echo."),
+q("10","A 63-year-old woman on digitalis for chronic atrial fibrillation experiences fatigue, nausea, and anorexia. Her pulse is regular at 50 beats/min, and the heart sounds, chest, and abdominal examinations are normal. On the ECG, no P waves are visible and the QRS complexes are narrow and regular. Which of the following is the most appropriate management step?",["An Increase In Digitalis Dose","Complete Cessation Of Digitalis","Withdrawal Of Digitalis For One Dose","Addition Of A Beta-Blocker","Addition of a calcium channel blocker"],"b",
+ "Digoxin toxicity may cause any dysrhythmia. Classically, dysrhythmias that are associated with increased automaticity and decreased AV conduction occur (i.e., paroxysmal atrial tachycardia with 2:1 block, accelerated junctional rhythm, or bidirectional ventricular tachycardia [torsade de pointes]). Sinus bradycardia and other bradyarrhythmias are very common. Slow atrial fibrillation with very little variation in the ventricular rate (regularization of the RR interval) may occur. This arrhythmia is likely slow atrial fibrillation. Symptoms of digitalis toxicity include anorexia, nausea, fatigue, dizziness, and visual disturbances. The presence of hypokalemia increases the likelihood of digitalis toxicity."),
+q("11","A 65-year-old man develops palpitations and dizziness. His blood pressure is 80/50 mm Hg and his pulse is regular at 150/min. His ECG shows a “saw-toothed” pattern of P waves. Which of the following procedures is most appropriate in converting him back to sinus rhythm?",["Carotid Sinus Pressure","Gagging Procedures","Valsalva Maneuver","Eyeball Compression","Electrical cardioversion"],"e",
+ "The maneuvers listed increase the block and are useful for diagnosis, but not for converting the atrial flutter to a sinus rhythm. Electrical cardioversion is the method of choice in patients who are hemodynamically unstable. Often very low amounts of energy during cardioversion will convert atrial flutter."),
+q("12","Three months after an anterior MI, a 73-year-old man has a follow-up ECG. He is clinically feeling well with no further angina symptoms. His ECG shows Q waves in the anterior leads with persistent ST-segment elevation. The current ECG is most compatible with which of the following diagnoses?",["Ventricular Aneurysm","Hibernating Myocardium","Acute Infarction","Silent Infarction","Early repolarization"],"a",
+ "ST elevation persisting 2 weeks after an infarct, an abnormal pericardial impulse, and a bulge on the left ventricular border on x-ray are characteristic of an aneurysm. Ventricular aneurysms are most often a result of a large anterior infarct. The poor prognosis associated with these aneurysms is due to the associated left ventricular dysfunction, rather than to the aneurysm itself."),
+q("13","A 70-year-old woman is found to have an irregular pulse rate on a routine visit. She is experiencing no new symptoms at rest or on exertion. On the ECG, there are no P waves and an irregular RR interval at a rate of 70/min. On her previous ECG from 4 years ago she was in sinus rhythm. Which of the following is the most appropriate next step in management?",["Cardioversion","Antiarrhythmic Therapy","Beta-Blocker","Anticoagulation","Aspirin"],"d",
+ "Since the duration of atrial fibrillation is not known, it is presumed to be chronic. There is an increased risk of cardioembolic events if restoration of sinus rhythm is attempted before anticoagulating the patient for 3–4 weeks. Aspirin is only modestly effective in reducing cardioembolic events and not the first choice. Beta-blockers are not indicated since the rate is controlled."),
+q("15","A 32-year-old man presents for routine evaluation. He has no symptoms but has noticed some new “nodules” on his legs. Physical examination reveals lumps on his Achillis tendon, yellow lesions around his eyes, and pigmentation of his iris. Which of the following is the most likely diagnosis?",["Familial hyperlipidemia","Diabetes","Myxedema","Chronic Renal Disease","An inherited defect of glycogen utilization"],"a",
+ "Early atherosclerosis with tendon xanthomas, xanthelasma, and arcus senilis are characteristics of familial hypercholesterolemia. The disorder is inherited in an autosomal dominant manner."),
+q("16","A 68-year-old woman with hypertension and dyslipidemia presents with 30 minutes of retrosternal chest pain radiating to her neck. She is diaphoretic and in moderate distress. The ECG shows ST-segment elevation in the inferior leads. Which of the following mechanisms is the most likely cause of her condition?",["Coronary plaque rupture","Aortic inflammation","Pericardial inflammation","Vasculitis","Myocarditis"],"a",
+ "Acute rupture of an atherosclerotic plaque is now recognized as the most common cause of ST-elevation MI. Pericarditis has diffuse ST elevation in multiple leads and aortic stenosis does cause angina but not ST elevation."),
+q("17","A 58-year-old man with no prior cardiac history presents with retrosternal chest pain starting at rest and lasting 30 minutes. The pain radiates to the left arm and is associated with diaphoresis and dyspnea. His blood pressure is 150/90 mm Hg, pulse 100/min, the heart sounds are normal, and the lungs are clear to auscultation. Which of the following is the next most appropriate investigation?",["CT scan-chest","CXR","Cardiac troponin","ECG","Myocardial perfusion imaging"],"d",
+ "This man has acute coronary syndrome (ACS) until proven otherwise. The ECG is the most useful initial investigation since it identifies individuals with ST-segment elevation who may be candidates for either thrombolysis or primary angioplasty (PCI). The troponins are important in diagnosing myocardial necrosis. The other investigations may be important in looking for alternate causes of chest pain once ST-elevation MI has been ruled out."),
+q("18","A 62-year-old man with a prosthetic aortic valve develops fevers and malaise. His valve was replaced 5 years ago because of aortic stenosis from a bicuspid valve. He has a systolic ejection murmur but no other abnormalities on examination. Blood cultures are most likely to grow which of the following?",["Fungi","Bartonella","Diptheroids","Staphylococcus epidermidis","Streptococcus bovis"],"d",
+ "S. epidermidis is still the most frequent early and late cause of endocarditis in patients with prosthetic heart valves. The other organisms are seen less frequently in late prosthetic valve endocarditis."),
+q("19","A 79-year-old man with a 40-year history of hypertension and cardiomegaly on CXR is likely to show which of the following on his ECG?",["Clockwise rotation of the electrical axis","rSR′ pattern in V1","Right axis deviation","High-voltage QRS complexes in V5 and V6","Prolonged PR interval in the limb leads"],"d",
+ "He likely has LVH. Signs include left axis deviation, high voltage QRS complexes in V5 and V6, deep S in V1 and V2, and prolonged QRS in the left precordial leads. Age, orientation of the heart in the chest, and noncardiac factors make the ECG an imperfect tool for diagnosing or excluding LVH. The ECG is more accurate and better for following progression or regression of LVH.")
+];
+
+var SUBJECTS = [
+  {id:"cardio", name:"Cardiology", icon:"🫀",
+   desc:"Arrhythmias, ischaemic heart disease, hypertension, cardiomyopathies, pericardial disease, valve disease and case scenarios.",
+   exams:[
+    {id:"cardio-p1",  title:"Part 1 – MCQs (Q116–Q166)", tags:"syncope atrial fibrillation wpw ventricular tachycardia heart block amiodarone hypertension angina myocardial infarction aortic dissection aspirin anticoagulation cardiomyopathy ace inhibitors tamponade pericardial effusion constrictive pericarditis hyperkalaemia heart failure", qs:P1},
+    {id:"cardio-p11a",title:"Part 11 A – Case Scenarios", tags:"case scenarios peripartum cardiomyopathy dvt svt atrial fibrillation syncope cardiogenic shock heart block mitral regurgitation warfarin hyponatraemia rheumatic fever kussmaul wenckebach", qs:P11A},
+    {id:"cardio-p11b",title:"Part 11 B – Case Scenarios (with explanations)", tags:"case scenarios explanations pulmonary embolism endocarditis pericarditis aortic stenosis digoxin toxicity atrial flutter ventricular aneurysm familial hyperlipidemia lvh", qs:P11B}
+   ]}
+];
+
+/* ============================ STATE / STORAGE ============================ */
+var KEY = "medquiz_dashboard_v1";
+function loadStore(){ try{ return JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ return {}; } }
+var S = Object.assign({examDate:"", examLabel:"My exam", history:[]}, loadStore());
+if(!Array.isArray(S.history)) S.history = [];
+function saveStore(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+var app = document.getElementById("app");
+var timerId = null, cdId = null;
+var Z = null;            // active quiz
+var lastCfg = null;      // config for retake
+var searchTerm = "";
+var reviewFilter = "all";
+
+/* ============================ HELPERS ============================ */
+function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function shuffle(a){ a = a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function pad(n){ return n<10 ? "0"+n : ""+n; }
+function fmt(sec){ sec=Math.max(0,sec); var h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60; return (h?h+":":"")+pad(m)+":"+pad(s); }
+function findSubject(id){ return SUBJECTS.filter(function(s){return s.id===id;})[0]; }
+function subjectQs(sub){ var out=[]; sub.exams.forEach(function(e){ e.qs.forEach(function(x){ out.push(x); }); }); return out; }
+function totals(){ var ex=0, qn=0; SUBJECTS.forEach(function(s){ ex+=s.exams.length; qn+=subjectQs(s).length; }); return {ex:ex, qn:qn}; }
+function bestFor(id){ var b=null; S.history.forEach(function(h){ if(h.id===id && (b===null || h.pct>b)) b=h.pct; }); return b; }
+function clearTimers(){ if(timerId){clearInterval(timerId);timerId=null;} if(cdId){clearInterval(cdId);cdId=null;} }
+
+/* ============================ HOME ============================ */
+function countdownHTML(){
+  var label = esc(S.examLabel || "My exam");
+  if(!S.examDate){
+    return '<div><div class="lbl">Exam countdown</div><div class="big">No exam date set</div><div class="sub">Set your exam date to start the countdown.</div></div>'+
+           '<button class="btn" id="cdEdit">Set date</button>';
+  }
+  var diff = new Date(S.examDate).getTime() - Date.now();
+  var big, sub;
+  if(isNaN(diff)){ big="Invalid date"; sub="Please edit the date."; }
+  else if(diff<=0){ big="Exam time!"; sub=label+" – the date has arrived. Good luck!"; }
+  else{
+    var d=Math.floor(diff/864e5), h=Math.floor(diff%864e5/36e5), m=Math.floor(diff%36e5/6e4);
+    big = d+" day"+(d===1?"":"s")+", "+h+" h, "+m+" min";
+    sub = label+" · "+new Date(S.examDate).toLocaleString([], {dateStyle:"full", timeStyle:"short"});
+  }
+  return '<div><div class="lbl">'+label+' – countdown</div><div class="big">'+big+'</div><div class="sub">'+sub+'</div></div>'+
+         '<button class="btn" id="cdEdit">Edit</button>';
+}
+function bindCountdown(){
+  var box = document.getElementById("banner");
+  var btn = document.getElementById("cdEdit");
+  if(!btn) return;
+  btn.onclick = function(){
+    box.innerHTML = '<form id="cdForm"><div class="lbl" style="width:100%">Edit exam countdown</div>'+
+      '<input id="cdLabel" type="text" placeholder="Exam name" value="'+esc(S.examLabel||"")+'" maxlength="60">'+
+      '<input id="cdDate" type="datetime-local" value="'+esc(S.examDate||"")+'">'+
+      '<button class="btn" type="submit">Save</button>'+
+      '<button class="btn" type="button" id="cdClear">Clear</button>'+
+      '<button class="btn" type="button" id="cdCancel">Cancel</button></form>';
+    document.getElementById("cdForm").onsubmit = function(e){
+      e.preventDefault();
+      S.examLabel = document.getElementById("cdLabel").value.trim() || "My exam";
+      S.examDate = document.getElementById("cdDate").value;
+      saveStore(); box.innerHTML = countdownHTML(); bindCountdown();
+    };
+    document.getElementById("cdClear").onclick = function(){ S.examDate=""; saveStore(); box.innerHTML=countdownHTML(); bindCountdown(); };
+    document.getElementById("cdCancel").onclick = function(){ box.innerHTML=countdownHTML(); bindCountdown(); };
+  };
+}
+function statsHTML(){
+  var t = totals(), taken = S.history.length;
+  var avg = taken ? Math.round(S.history.reduce(function(a,h){return a+h.pct;},0)/taken) : null;
+  function box(v,k){ return '<div class="stat"><div class="v">'+v+'</div><div class="k">'+k+'</div></div>'; }
+  return box(t.ex,"Total Exams")+box(t.qn,"Total Questions")+box(taken,"Exams Taken")+box(avg===null?"–":avg+"%","Average Score");
+}
+function subjectsHTML(term){
+  term = term.trim().toLowerCase();
+  var out = "";
+  SUBJECTS.forEach(function(sub){
+    var subMatch = !term || sub.name.toLowerCase().indexOf(term)>=0 || sub.desc.toLowerCase().indexOf(term)>=0;
+    var matches = [];
+    sub.exams.forEach(function(ex){
+      var hit = 0;
+      if(term){
+        ex.qs.forEach(function(x){ if((x.q+" "+x.o.join(" ")).toLowerCase().indexOf(term)>=0) hit++; });
+      }
+      var titleHit = !term || ex.title.toLowerCase().indexOf(term)>=0 || ex.tags.toLowerCase().indexOf(term)>=0;
+      if(subMatch || titleHit || hit) matches.push({ex:ex, hit:hit});
+    });
+    if(!matches.length) return;
+    var qn = subjectQs(sub).length;
+    var chips = "";
+    if(term){
+      chips = '<div class="chips">'+matches.map(function(m){
+        return '<span class="chip">'+esc(m.ex.title.split(" (")[0])+(m.hit?" · "+m.hit+" matching Q":"")+'</span>';
+      }).join("")+'</div>';
+    }
+    out += '<div class="card subject" data-sub="'+sub.id+'"><div class="ico">'+sub.icon+'</div><h3>'+esc(sub.name)+'</h3>'+
+           '<div class="meta">'+sub.exams.length+' exams · '+qn+' questions</div>'+
+           '<p class="meta" style="margin:8px 0 0">'+esc(sub.desc)+'</p>'+chips+'</div>';
+  });
+  return out || '<div class="empty card" style="grid-column:1/-1">No subjects or exams match “'+esc(term)+'”.</div>';
+}
+function showHome(){
+  clearTimers(); Z=null;
+  app.innerHTML =
+    '<div class="topbar"><div class="logo">Med<span>Quiz</span> · Study Dashboard</div></div>'+
+    '<div class="banner" id="banner">'+countdownHTML()+'</div>'+
+    '<div class="stats">'+statsHTML()+'</div>'+
+    '<input class="search" id="search" type="search" placeholder="Search topics, exams or questions…" value="'+esc(searchTerm)+'" autocomplete="off">'+
+    '<div class="grid" id="subjects">'+subjectsHTML(searchTerm)+'</div>'+
+    '<p class="note">Progress and settings are saved in this browser (localStorage).</p>';
+  bindCountdown();
+  cdId = setInterval(function(){ var b=document.getElementById("banner"); if(b && !document.getElementById("cdForm")){ b.innerHTML=countdownHTML(); bindCountdown(); } }, 30000);
+  document.getElementById("search").oninput = function(e){ searchTerm = e.target.value; document.getElementById("subjects").innerHTML = subjectsHTML(searchTerm); bindSubjects(); };
+  bindSubjects();
+}
+function bindSubjects(){
+  Array.prototype.forEach.call(document.querySelectorAll("[data-sub]"), function(el){ el.onclick = function(){ showSubject(el.getAttribute("data-sub")); }; });
+}
+
+/* ============================ SUBJECT ============================ */
+function showSubject(id){
+  clearTimers(); Z=null;
+  var sub = findSubject(id);
+  var rows = sub.exams.map(function(ex){
+    var b = bestFor(ex.id);
+    return '<div class="card exam"><div><h3>'+esc(ex.title)+'</h3><div class="meta">'+ex.qs.length+' questions'+(b!==null?' · best score '+b+'%':' · not taken yet')+'</div></div>'+
+      '<div class="btns"><button class="btn small" data-start="'+ex.id+'">Start</button><button class="btn small ghost" data-shuf="'+ex.id+'">Shuffle</button></div></div>';
+  }).join("");
+  app.innerHTML =
+    '<button class="back" id="back">← All subjects</button>'+
+    '<div class="head"><div><h2>'+sub.icon+' '+esc(sub.name)+'</h2><p>'+sub.exams.length+' exams · '+subjectQs(sub).length+' questions</p></div>'+
+    '<div class="actions"><button class="btn" id="mixed">Random mixed quiz (10 questions)</button><button class="btn ghost" id="full">Full Shuffled Exam</button></div></div>'+rows;
+  document.getElementById("back").onclick = showHome;
+  document.getElementById("mixed").onclick = function(){ startQuiz({id:sub.id+"-mixed", title:sub.name+" – Random mixed quiz", subject:sub.id, kind:"mixed"}); };
+  document.getElementById("full").onclick  = function(){ startQuiz({id:sub.id+"-full",  title:sub.name+" – Full shuffled exam", subject:sub.id, kind:"full"}); };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-start]"), function(b){
+    b.onclick = function(){ var ex=sub.exams.filter(function(e){return e.id===b.getAttribute("data-start");})[0]; startQuiz({id:ex.id, title:ex.title, subject:sub.id, kind:"exam", exam:ex.id, shuffle:false}); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-shuf]"), function(b){
+    b.onclick = function(){ var ex=sub.exams.filter(function(e){return e.id===b.getAttribute("data-shuf");})[0]; startQuiz({id:ex.id, title:ex.title+" (shuffled)", subject:sub.id, kind:"exam", exam:ex.id, shuffle:true}); };
+  });
+}
+
+/* ============================ QUIZ ============================ */
+function prep(x, shuffleOpts){
+  var opts = x.o.map(function(t,i){ return {t:t, ok:i===x.a}; });
+  if(shuffleOpts) opts = shuffle(opts);
+  return {n:x.n, q:x.q, opts:opts, e:x.e};
+}
+function startQuiz(cfg){
+  lastCfg = cfg;
+  var sub = findSubject(cfg.subject), pool, shuf = true;
+  if(cfg.kind==="mixed"){ pool = shuffle(subjectQs(sub)).slice(0,10); }
+  else if(cfg.kind==="full"){ pool = shuffle(subjectQs(sub)); }
+  else {
+    var ex = sub.exams.filter(function(e){return e.id===cfg.exam;})[0];
+    pool = cfg.shuffle ? shuffle(ex.qs) : ex.qs.slice();
+    shuf = !!cfg.shuffle;
+  }
+  var qs = pool.map(function(x){ return prep(x, shuf); });
+  var total = qs.length*60;
+  Z = {cfg:cfg, qs:qs, ans:qs.map(function(){return null;}), flags:qs.map(function(){return false;}),
+       i:0, total:total, start:Date.now(), end:Date.now()+total*1000, done:false};
+  clearTimers();
+  renderQuiz();
+  timerId = setInterval(tick, 500);
+}
+function remaining(){ return Math.max(0, Math.ceil((Z.end-Date.now())/1000)); }
+function tick(){
+  if(!Z || Z.done) return;
+  var r = remaining(), el = document.getElementById("timer");
+  if(el){ el.textContent = "⏱ "+fmt(r); el.classList.toggle("low", r<=60); }
+  if(r<=0){ finishQuiz(true); }
+}
+function renderQuiz(){
+  var z=Z, q=z.qs[z.i], a=z.ans[z.i], answered = a!==null;
+  var correctIdx = q.opts.findIndex(function(o){return o.ok;});
+  var done = z.ans.filter(function(v){return v!==null;}).length;
+  var optsHTML = q.opts.map(function(o,i){
+    var cls = "opt";
+    if(answered){ if(o.ok) cls+=" ok"; else if(i===a) cls+=" bad"; }
+    return '<button class="'+cls+'" data-opt="'+i+'" '+(answered?"disabled":"")+'><span class="L">'+"ABCDE"[i]+'</span><span>'+esc(o.t)+'</span></button>';
+  }).join("");
+  var fb = "";
+  if(answered){
+    fb = (a===correctIdx)
+      ? '<div class="fb ok"><b>✔ Correct!</b></div>'
+      : '<div class="fb bad"><b>✘ Incorrect.</b> The correct answer is <b>'+"ABCDE"[correctIdx]+'. '+esc(q.opts[correctIdx].t)+'</b></div>';
+    if(q.e) fb += '<div class="expl"><b>Explanation:</b> '+esc(q.e)+'</div>';
+  }
+  var grid = z.qs.map(function(_,i){
+    var c = "";
+    if(z.ans[i]!==null){ c = z.qs[i].opts[z.ans[i]].ok ? "ok" : "bad"; }
+    if(z.flags[i]) c += " flag";
+    if(i===z.i) c += " cur";
+    return '<button class="'+c+'" data-go="'+i+'" title="Question '+(i+1)+'">'+(i+1)+'</button>';
+  }).join("");
+  app.innerHTML =
+    '<div class="qhead"><div class="t">'+esc(z.cfg.title)+'</div><div class="timer'+(remaining()<=60?" low":"")+'" id="timer">⏱ '+fmt(remaining())+'</div></div>'+
+    '<div class="bar"><i style="width:'+Math.round(done/z.qs.length*100)+'%"></i></div>'+
+    '<div class="card"><div class="qnum"><span>Question '+(z.i+1)+' of '+z.qs.length+' · answered '+done+'</span><span>Ref. Q'+esc(q.n)+'</span></div>'+
+    '<div class="qtext">'+esc(q.q)+'</div>'+optsHTML+fb+
+    '<div class="nav"><button class="btn ghost" id="prev" '+(z.i===0?"disabled":"")+'>← Previous</button>'+
+    '<button class="btn flagbtn'+(z.flags[z.i]?" on":"")+'" id="flag">⚑ '+(z.flags[z.i]?"Flagged":"Flag for review")+'</button>'+
+    (z.i<z.qs.length-1 ? '<button class="btn" id="next">Next →</button>' : '<button class="btn" id="finish">Finish exam</button>')+'</div></div>'+
+    '<div class="card" style="margin-top:14px"><b>Question navigator</b><div class="qgrid" style="margin-top:10px">'+grid+'</div>'+
+    '<div class="legend"><span><i class="ok"></i>Correct</span><span><i class="bad"></i>Wrong</span><span><i class="flag"></i>Flagged</span><span><i></i>Unanswered</span></div>'+
+    '<div class="nav"><span></span><button class="btn ghost small" id="finish2">Finish &amp; see results</button></div></div>';
+  Array.prototype.forEach.call(document.querySelectorAll("[data-opt]"), function(b){ b.onclick=function(){ choose(+b.getAttribute("data-opt")); }; });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-go]"), function(b){ b.onclick=function(){ go(+b.getAttribute("data-go")); }; });
+  var p=document.getElementById("prev"); if(p) p.onclick=function(){ go(z.i-1); };
+  var n=document.getElementById("next"); if(n) n.onclick=function(){ go(z.i+1); };
+  document.getElementById("flag").onclick=function(){ z.flags[z.i]=!z.flags[z.i]; renderQuiz(); };
+  var f=document.getElementById("finish"); if(f) f.onclick=function(){ finishQuiz(false); };
+  document.getElementById("finish2").onclick=function(){ finishQuiz(false); };
+}
+function go(i){ if(!Z||Z.done||i<0||i>=Z.qs.length) return; Z.i=i; renderQuiz(); window.scrollTo(0,0); }
+function choose(i){ if(!Z||Z.done||Z.ans[Z.i]!==null) return; Z.ans[Z.i]=i; renderQuiz(); }
+
+document.addEventListener("keydown", function(e){
+  if(!Z || Z.done) return;
+  if(e.target && /input|textarea/i.test(e.target.tagName)) return;
+  var k = e.key.toLowerCase();
+  if("abcde".indexOf(k)>=0 && k.length===1 && "abcde".indexOf(k) < Z.qs[Z.i].opts.length) choose("abcde".indexOf(k));
+  else if(e.key==="ArrowRight") go(Z.i+1);
+  else if(e.key==="ArrowLeft") go(Z.i-1);
+  else if(k==="f"){ Z.flags[Z.i]=!Z.flags[Z.i]; renderQuiz(); }
+});
+
+function finishQuiz(timeUp){
+  if(!Z || Z.done) return;
+  var un = Z.ans.filter(function(v){return v===null;}).length;
+  if(!timeUp && un>0 && !confirm("You have "+un+" unanswered question"+(un>1?"s":"")+". Finish anyway? (Unanswered count as wrong.)")) return;
+  Z.done = true; clearTimers();
+  var correct = 0;
+  Z.qs.forEach(function(q,i){ if(Z.ans[i]!==null && q.opts[Z.ans[i]].ok) correct++; });
+  Z.correct = correct; Z.unanswered = un;
+  Z.pct = Math.round(correct/Z.qs.length*100);
+  Z.spent = Math.min(Z.total, Math.round((Date.now()-Z.start)/1000));
+  Z.timeUp = !!timeUp;
+  S.history.push({id:Z.cfg.id, title:Z.cfg.title, score:correct, total:Z.qs.length, pct:Z.pct, date:Date.now()});
+  saveStore();
+  reviewFilter = "all";
+  showResults();
+}
+
+/* ============================ RESULTS ============================ */
+function showResults(){
+  var z=Z, wrong = z.qs.length - z.correct;
+  var items = z.qs.map(function(q,i){ return {q:q,i:i}; }).filter(function(o){
+    if(reviewFilter==="all") return true;
+    return z.ans[o.i]===null || !o.q.opts[z.ans[o.i]].ok;
+  });
+  var rev = items.map(function(o){
+    var q=o.q, a=z.ans[o.i], ok = a!==null && q.opts[a].ok;
+    var tag = a===null ? '<span class="tag skip">Not answered</span>' : (ok ? '<span class="tag ok">Correct</span>' : '<span class="tag bad">Wrong</span>');
+    var opts = q.opts.map(function(op,j){
+      var cls="opt"; if(op.ok) cls+=" ok"; else if(j===a) cls+=" bad";
+      return '<div class="'+cls+'" style="cursor:default"><span class="L">'+"ABCDE"[j]+'</span><span>'+esc(op.t)+(j===a?" <i>(your answer)</i>":"")+'</span></div>';
+    }).join("");
+    return '<div class="card rev"><div class="qnum"><span>Question '+(o.i+1)+tag+(z.flags[o.i]?' <span class="tag skip">⚑ flagged</span>':"")+'</span><span>Ref. Q'+esc(q.n)+'</span></div>'+
+      '<div class="qtext">'+esc(q.q)+'</div>'+opts+(q.e?'<div class="expl"><b>Explanation:</b> '+esc(q.e)+'</div>':"")+'</div>';
+  }).join("") || '<div class="empty card">Nothing to show here — no wrong answers. 🎉</div>';
+  app.innerHTML =
+    '<div class="card result"><h2>'+(z.timeUp?"Time’s up!":"Quiz complete")+'</h2><div class="meta" style="color:var(--mute)">'+esc(z.cfg.title)+'</div>'+
+    '<div class="ring'+(z.pct<50?" low":"")+'" style="--p:'+z.pct+'"><div>'+z.pct+'%</div></div>'+
+    '<h3>Score: '+z.correct+' / '+z.qs.length+'</h3>'+
+    '<div class="rstats"><span>✔ '+z.correct+' correct</span><span>✘ '+(wrong-z.unanswered)+' wrong</span><span>– '+z.unanswered+' unanswered</span><span>⏱ '+fmt(z.spent)+'</span></div>'+
+    '<div class="actions" style="justify-content:center"><button class="btn" id="retake">Retake</button><button class="btn ghost" id="toSub">Back to subject</button><button class="btn ghost" id="toHome">Home</button></div></div>'+
+    '<div style="text-align:center;margin-top:18px"><h3>Review</h3><div class="seg"><button data-f="all" class="'+(reviewFilter==="all"?"on":"")+'">All ('+z.qs.length+')</button><button data-f="wrong" class="'+(reviewFilter==="wrong"?"on":"")+'">Wrong only ('+wrong+')</button></div></div>'+
+    rev;
+  document.getElementById("retake").onclick=function(){ startQuiz(lastCfg); window.scrollTo(0,0); };
+  document.getElementById("toSub").onclick=function(){ showSubject(z.cfg.subject); };
+  document.getElementById("toHome").onclick=showHome;
+  Array.prototype.forEach.call(document.querySelectorAll("[data-f]"), function(b){ b.onclick=function(){ reviewFilter=b.getAttribute("data-f"); showResults(); }; });
+}
+
+showHome();
+</script>
+</body>
+</html>
